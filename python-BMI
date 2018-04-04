@@ -1,0 +1,20 @@
+#!/usr/bin/env python2
+ 
+a=input('height: ')
+b=input('weight: ')
+height=int(a)
+weight=int(b)
+
+BMI=80.5/(1.75*1.75)
+
+print('BMI=1.1f',BMI)
+if BMI < 18.5:
+  print('guo qing')
+elif   18.5 < BMI <25:
+  print('zheng chang')
+elif 25 < BMI < 28:
+  print('guo zhong')
+elif 28 < BMI <        32:
+  print('fei pang')
+else:
+  print('yan zhong fei pang')
