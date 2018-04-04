@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# 把需要配置的目标环境的rpm包全部通过rpm -qa --qf '%{name}-%{version}-%{release}.%{arch}.rpm\n' | sort的方式
+# 重定向到des_rpm文件中，再把 des_rpm文件和该脚本放到同一路径下
+
+echo "=================== Check Begin ==================="
+
+if [ ! -f des_rpm ];then
+        echo "Please prepare destination des_rpm to the same dir of check_os.sh"
+        echo "==================== Check End ===================="
+        exit 1
+fi
+
+rm -rf /tmp/mycheck_os
+mkdir /tmp/mycheck_os
+
+#backup my and destination package information 
+cp "des_rpm" /tmp/mycheck_os/userpack.txt
+rpm -qa --qf '%{name}-%{version}-%{release}.%{arch}.rpm\n' | sort >/tmp/mycheck_os/mypack.txt
+
+cat /tmp/mycheck_os/userpack.txt |while read package
+do
+        grep "$package" /tmp/mycheck_os/mypack.txt >/dev/null 2>&1
+        if [ $? -ne 0 ];then
+                echo "$package" >>/tmp/mycheck_os/different.txt
+        fi
+done
+
+cat /tmp/mycheck_os/mypack.txt |awk -F"-[0-9]" '{print $1}' |while read line
+do
+        grep "$line" /tmp/mycheck_os/userpack.txt >/dev/null 2>&1
+        if [ $? -ne 0 ];then
+                echo "$line" >>/tmp/mycheck_os/uninstall.txt
+        fi
+done
+
+cat /tmp/mycheck_os/different.txt |awk -F"-[0-9]" '{print $1}' >/tmp/mycheck_os/tmp.txt
+cat /tmp/mycheck_os/tmp.txt  |while read diff
+do
+        grep "$diff" /tmp/mycheck_os/mypack.txt >>/dev/null 2>&1
+        if [ $? -ne 0 ];then
+                echo "$diff" >>/tmp/mycheck_os/need_install.tmp.txt
+        else
+                echo "$diff" >>/tmp/mycheck_os/version_diff.tmp.txt
+        fi
+done
+
+cat /tmp/mycheck_os/need_install.tmp.txt |while read install
+do
+        grep "$install" /tmp/mycheck_os/userpack.txt    >>/tmp/mycheck_os/need_install.txt
+done
+cat /tmp/mycheck_os/version_diff.tmp.txt |while read version
+do
+        grep "$version" /tmp/mycheck_os/userpack.txt    >>/tmp/mycheck_os/version_diff.txt
+done
+
+rm -f  /tmp/mycheck_os/*tmp.txt
+rm -f /tmp/mycheck_os/mypack.txt
+rm -f /tmp/mycheck_os/userpack.txt
+rm -f /tmp/mycheck_os/different.txt
+echo "== to uninstall number: `cat /tmp/mycheck_os/uninstall.txt |wc -l` =="
+echo "== version diff number: `cat /tmp/mycheck_os/version_diff.txt |wc -l` =="
+echo "== will install number: `cat /tmp/mycheck_os/need_install.txt |wc -l` =="
+echo "== Please check /tmp/mycheck_os =="
+echo "== After test, plese rm -rf /tmp/mycheck_os ! =="
+echo "==================== Check End ===================="
